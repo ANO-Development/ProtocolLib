@@ -335,6 +335,51 @@ public class PacketContainerTest {
         assertEquals(packet.getEntityTypeModifier().read(0), EntityType.ARROW);
     }
 
+    @Test
+    public void testSpawnEntityVirtualItem() {
+        // Mirrors how plugins (e.g. QuickShop) build a fake item spawn packet
+        PacketContainer packet = new PacketContainer(PacketType.Play.Server.SPAWN_ENTITY);
+        UUID uuid = UUID.randomUUID();
+
+        packet.getIntegers().write(0, 42);
+        packet.getUUIDs().write(0, uuid);
+        packet.getEntityTypeModifier().write(0, EntityType.ITEM);
+        packet.getDoubles().write(0, 1.5);
+        packet.getDoubles().write(1, 2.5);
+        packet.getDoubles().write(2, 3.5);
+        packet.getVectors().write(0, new Vector(0, 0, 0));
+
+        assertEquals(42, packet.getIntegers().read(0));
+        assertEquals(uuid, packet.getUUIDs().read(0));
+        assertEquals(EntityType.ITEM, packet.getEntityTypeModifier().read(0));
+        assertEquals(3.5, packet.getDoubles().read(2));
+
+        // The packet must also encode, otherwise the client never receives it
+        net.minecraft.network.RegistryFriendlyByteBuf buf = new net.minecraft.network.RegistryFriendlyByteBuf(
+                io.netty.buffer.Unpooled.buffer(), org.bukkit.craftbukkit.CraftRegistry.getMinecraftRegistry());
+        net.minecraft.network.protocol.game.ClientboundAddEntityPacket.STREAM_CODEC.encode(
+                buf, (net.minecraft.network.protocol.game.ClientboundAddEntityPacket) packet.getHandle());
+        assertTrue(buf.readableBytes() > 0);
+    }
+
+    @Test
+    public void testMetadataVirtualItem() {
+        // Mirrors QuickShop's createMetaDataPacket (no gravity + item stack)
+        ItemStack stack = new ItemStack(Material.GRASS_BLOCK);
+        List<WrappedDataValue> values = Lists.newArrayList(
+                new WrappedDataValue(5, Registry.get(Boolean.class), true),
+                new WrappedDataValue(8, Registry.getItemStackSerializer(false),
+                        MinecraftReflection.getMinecraftItemStack(stack)));
+
+        PacketContainer packet = new PacketContainer(PacketType.Play.Server.ENTITY_METADATA);
+        packet.getIntegers().write(0, 42);
+        packet.getDataValueCollectionModifier().write(0, values);
+
+        // Not encoded here: ClientboundSetEntityDataPacket reads Paper's GlobalConfiguration, which the test harness lacks
+        assertEquals(2, packet.getDataValueCollectionModifier().read(0).size());
+        assertEquals(42, packet.getIntegers().read(0));
+    }
+
     // @Test // TODO: explosion no longer contains block position list
     public void testGetPositionCollectionModifier() {
         PacketContainer explosionPacket = new PacketContainer(PacketType.Play.Server.EXPLOSION);
