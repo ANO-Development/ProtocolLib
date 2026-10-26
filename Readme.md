@@ -14,8 +14,8 @@ lead to more subtle bugs.
 
 * [Spigot Page](https://spigotmc.org/resources/protocollib.1997/)
 * [Releases](https://github.com/dmulloy2/ProtocolLib/releases)
-* [Dev Build](https://github.com/dmulloy2/ProtocolLib/releases/tag/dev-build)
-* [JavaDoc](https://dmulloy2.net/ProtocolLib/javadoc/)
+* [Dev Builds](https://ci.dmulloy2.net/job/ProtocolLib/)
+* [JavaDoc](https://ci.dmulloy2.net/job/ProtocolLib/javadoc/index.html)
 * [Protocol Wiki](https://minecraft.wiki/w/Minecraft_Wiki:Projects/wiki.vg_merge/Protocol)
 
 `ProtocolLib.jar` is the primary Paper plugin. Spigot servers must use the compatibility artifact,
@@ -69,6 +69,48 @@ dependencies {
 }
 ```
 
+#### Snapshot builds
+
+Snapshot builds are available for testing changes before the next release. To use `5.5.0-SNAPSHOT`,
+add the [public repository](https://repo.dmulloy2.net/repository/public/) and update your dependency version.
+
+For Maven:
+
+```xml
+<repositories>
+  <repository>
+    <id>dmulloy2-public</id>
+    <url>https://repo.dmulloy2.net/repository/public/</url>
+  </repository>
+</repositories>
+
+<dependencies>
+  <dependency>
+    <groupId>net.dmulloy2</groupId>
+    <artifactId>ProtocolLib</artifactId>
+    <version>5.5.0-SNAPSHOT</version>
+    <scope>provided</scope>
+  </dependency>
+</dependencies>
+```
+
+For Gradle:
+
+```gradle
+repositories {
+    mavenCentral()
+    maven {
+        url = uri('https://repo.dmulloy2.net/repository/public/')
+    }
+}
+
+dependencies {
+    compileOnly 'net.dmulloy2:ProtocolLib:5.5.0-SNAPSHOT'
+}
+```
+
+#### Accessing the API
+
 Then get a reference to ProtocolManager in onLoad() or onEnable() and you're good to go.
 
 ````java
@@ -95,25 +137,26 @@ protocolManager.addPacketListener(new PacketAdapter(
 });
 ````
 
-It's also possible to read and modify the content of these packets. For instance, you can create a global
-censor by listening for Packet3Chat events:
+It's also possible to read and modify the content of packets, including the ones sent by a client. For
+instance, you can censor the text players write on signs by listening for `UPDATE_SIGN` packets:
 
 ````java
-// Censor
+// Censor signs
 protocolManager.addPacketListener(new PacketAdapter(
     this,
     ListenerPriority.NORMAL,
-    PacketType.Play.Client.CHAT
+    PacketType.Play.Client.UPDATE_SIGN
 ) {
     @Override
     public void onPacketReceiving(PacketEvent event) {
         PacketContainer packet = event.getPacket();
-        String message = packet.getStrings().read(0);
+        String[] lines = packet.getStringArrays().read(0);
 
-        if (message.contains("shit") || message.contains("damn")) {
-            event.setCancelled(true);
-            event.getPlayer().sendMessage("Bad manners!");
+        for (int i = 0; i < lines.length; i++) {
+            lines[i] = lines[i].replace("shit", "****").replace("damn", "****");
         }
+
+        packet.getStringArrays().write(0, lines);
     }
 });
 ````
