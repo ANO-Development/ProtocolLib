@@ -187,7 +187,11 @@ public abstract class EnumWrappers {
         DROP_ITEM,
         RELEASE_USE_ITEM,
         SWAP_HELD_ITEMS("SWAP_ITEM_WITH_OFFHAND"),
-        STAB;
+        STAB,
+        /**
+         * Added in 26.3.
+         */
+        CHANGE_DESTROY_DIRECTION;
 
         final String[] aliases;
         PlayerDigType(String... aliases) {
@@ -803,7 +807,11 @@ public abstract class EnumWrappers {
             PLAYER_DIG_TYPE_CLASS = getEnum(PacketType.Play.Client.BLOCK_DIG.getPacketClass(), 1);
             PLAYER_ACTION_CLASS = getEnum(PacketType.Play.Client.ENTITY_ACTION.getPacketClass(), 0);
             SCOREBOARD_ACTION_CLASS = getEnum(PacketType.Play.Server.SCOREBOARD_SCORE.getPacketClass(), 0);
-            PARTICLE_CLASS = getEnum(PacketType.Play.Server.WORLD_PARTICLES.getPacketClass(), 0);
+            // The particle enum (EnumParticle) was replaced by particle objects in 1.13. Only look for it on older
+            // versions, because later packets hold unrelated enums (26.3 added RandomizationType) at the same index.
+            if (!MinecraftVersion.AQUATIC_UPDATE.atOrAbove()) {
+                PARTICLE_CLASS = getEnum(PacketType.Play.Server.WORLD_PARTICLES.getPacketClass(), 0);
+            }
 
             PLAYER_INFO_ACTION_CLASS = getEnum(PacketType.Play.Server.PLAYER_INFO.getPacketClass(), 0);
             if (PLAYER_INFO_ACTION_CLASS == null) {

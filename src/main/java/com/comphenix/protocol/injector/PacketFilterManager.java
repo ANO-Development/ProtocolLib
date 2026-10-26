@@ -159,7 +159,7 @@ public class PacketFilterManager implements ListenerManager, InternalManager {
         // A monitor listener should never modify a packet/event so we can simply invoke monitor listeners
         // independently of our injector pipeline 
         if (!filters) {
-            this.runMonitorListeners(packet, () -> {
+            this.runMonitorListeners(packet, receiver, () -> {
                 PacketEvent event = PacketEvent.fromServer(this, packet, marker, receiver, false);
                 this.outboundListeners.invoke(event, ListenerPriority.MONITOR);
             });
@@ -198,7 +198,7 @@ public class PacketFilterManager implements ListenerManager, InternalManager {
 
         // make sure we are on the main thread if any listener of the packet needs it
         if (filters && this.requiresMainThread(packet)) {
-            ProtocolLibrary.getScheduler().runTask(
+            ProtocolLibrary.getScheduler().runTask(sender,
                     () -> this.receiveClientPacket(sender, packet, marker, filters));
             return;
         }
@@ -218,7 +218,7 @@ public class PacketFilterManager implements ListenerManager, InternalManager {
         } else {
             // A monitor listener should never modify a packet/event so we can simply invoke monitor listeners
             // independently of our injector pipeline 
-            this.runMonitorListeners(packet, () -> {
+            this.runMonitorListeners(packet, sender, () -> {
                 PacketEvent event = PacketEvent.fromClient(this, packet, marker, sender, false);
                 this.inboundListeners.invoke(event, ListenerPriority.MONITOR);
             });
@@ -525,9 +525,9 @@ public class PacketFilterManager implements ListenerManager, InternalManager {
         return this.hasMainThreadListener(packet.getType()) && !this.server.isPrimaryThread();
     }
 
-    private void runMonitorListeners(PacketContainer packet, Runnable notifyMonitor) {
+    private void runMonitorListeners(PacketContainer packet, Player player, Runnable notifyMonitor) {
         if (this.requiresMainThread(packet)) {
-            ProtocolLibrary.getScheduler().runTask(notifyMonitor);
+            ProtocolLibrary.getScheduler().runTask(player, notifyMonitor);
         } else {
             notifyMonitor.run();
         }

@@ -22,7 +22,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 class PlatformCommandRegistrarTest {
 
     @Test
-    void registersLegacyExecutorAsPaperCommand() {
+    void registersLegacyExecutorAsPaperCommand() throws Exception {
         ProtocolLib plugin = mock(ProtocolLib.class);
         CommandExecutor executor = mock(CommandExecutor.class);
         ArgumentCaptor<BasicCommand> commandCaptor = ArgumentCaptor.forClass(BasicCommand.class);

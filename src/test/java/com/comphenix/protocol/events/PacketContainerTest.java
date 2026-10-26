@@ -183,7 +183,8 @@ public class PacketContainerTest {
 
     @Test
     public void testGetShorts() {
-        PacketContainer itemData = new PacketContainer(PacketType.Play.Server.REL_ENTITY_MOVE);
+        // 26.3 moved the REL_ENTITY_MOVE shorts into a VecDelta, so use a packet that still holds a short
+        PacketContainer itemData = new PacketContainer(PacketType.Play.Client.SET_CREATIVE_SLOT);
         this.testPrimitive(itemData.getShorts(), 0, (short) 0, (short) 1);
     }
 
@@ -981,9 +982,12 @@ public class PacketContainerTest {
 
         byte[] signature = new byte[256];
         WrappedMessageSignature wrappedSignature = new WrappedMessageSignature(signature);
-        chatPacket.getMessageSignatures().write(0, wrappedSignature);
+        // Since 26.3 the signature is an Optional<MessageSignature>
+        StructureModifier<Optional<WrappedMessageSignature>> signatures =
+                chatPacket.getOptionals(BukkitConverters.getWrappedMessageSignatureConverter());
+        signatures.write(0, Optional.of(wrappedSignature));
 
-        WrappedMessageSignature read = chatPacket.getMessageSignatures().read(0);
+        WrappedMessageSignature read = signatures.read(0).orElseThrow();
         assertArrayEquals(signature, read.getBytes());
     }
 
