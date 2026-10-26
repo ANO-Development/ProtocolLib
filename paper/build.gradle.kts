@@ -72,6 +72,11 @@ sourceSets {
 }
 
 tasks {
+    // The unshaded module jar is only a build step; mark it so it is never mistaken for the plugin jar
+    jar {
+        archiveClassifier.set("plain")
+    }
+
     processResources {
         val fullVersion = if (isSnapshot && isCI) "${version}-${commitHash.take(7)}" else version
 
